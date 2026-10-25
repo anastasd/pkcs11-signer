@@ -1,0 +1,46 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "opener:default",
+    {
+      "identifier": "fs:allow-mkdir",
+      "allow": [
+        "$DESKTOP/*",
+        "$DESKTOP/**/*"
+      ]
+    },
+    {
+      "identifier": "fs:allow-write-file",
+      "allow": [
+        "$DESKTOP/*",
+        "$DESKTOP/**/*"
+      ]
+    },
+    {
+      "identifier": "fs:allow-read-file",
+      "allow": [
+        {
+          "path": "$DESKTOP/**"
+        }
+      ]
+    },
+    "fs:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "pkcs11-tool",
+          "cmd": "pkcs11-tool",
+          "args": true
+        }
+      ]
+    },
+    "shell:default"
+  ]
+}
