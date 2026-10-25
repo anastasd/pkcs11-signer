@@ -131,43 +131,45 @@ async function signFile() {
 }
 
 async function verifySignature() {
-  const pinCode = pinCodeInput?.value as String | "";
+  // const pinCode = pinCodeInput?.value as String | "";
 
-  console.log(pinCode)
+  const desktopPath = await desktopDir() as any;
+  const fileObj1 = signedFileInput.files[0], reader1 = new FileReader();
+  const fileObj2 = signatureFileInput.files[0], reader2 = new FileReader();
 
   await writeFiles();
 
-  // try {
-  //   const program = "pkcs11-tool";
-  //   const args = [
-  //     "--verify",
-  //     "--id", "0001",
-  //     "--mechanism", "SHA256-RSA-PKCS",
-  //     "--input-file", desktopPath + "/" + fileObj1.name,
-  //     "--signature-file", desktopPath + "/" + fileObj1.name + ".sig"
-  //   ] as string[];
-  //   const command = Command.create(program, args);
-  //   const output = await command.execute();
+  try {
+    const program = "pkcs11-tool";
+    const args = [
+      "--verify",
+      "--id", "0001",
+      "--mechanism", "SHA256-RSA-PKCS",
+      "--input-file", desktopPath + "/pkcs11-signer/" + randomPath + "/" + fileObj1.name,
+      "--signature-file", desktopPath + "/pkcs11-signer/" + randomPath + "/" + fileObj1.name + ".sig"
+    ] as string[];
+    const command = Command.create(program, args);
+    const output = await command.execute();
 
-  //   if (output.code === 0) {
-  //     if (signFileInput) {
-  //       signFileInput.value = "";
-  //     }
-  //     signModal?.classList.remove("active");
-  //     pinCodeInput!.value = "";
+    if (output.code === 0) {
+      if (signFileInput) {
+        signFileInput.value = "";
+      }
+      signModal?.classList.remove("active");
+      pinCodeInput!.value = "";
 
-  //     alert("Signature successfuly generated and saved to " + desktopPath + "/" + fileObj.name + ".sig");
-  //   } else {
-  //     await remove(desktopPath + "/" + fileObj1.name);
+      alert("Signature successfuly generated and saved to " + desktopPath + "/" + fileObj.name + ".sig");
+    } else {
+      await remove(desktopPath + "/" + fileObj1.name);
 
-  //     alert("There was an error creating the signature: \"" + output.stderr + "\"");
-  //   }
+      alert("There was an error creating the signature: \"" + output.stderr + "\"");
+    }
 
-  // } catch (error) {
-  //   await remove(desktopPath + "/" + fileObj1.name);
+  } catch (error) {
+    await remove(desktopPath + "/" + fileObj1.name);
 
-  //   console.error("Failed to run command:", error);
-  // }
+    console.error("Failed to run command:", error);
+  }
 }
 
 async function writeFiles() {
@@ -175,9 +177,6 @@ async function writeFiles() {
     const desktopPath = await desktopDir() as any;
     const fileObj1 = signedFileInput.files[0], reader1 = new FileReader();
     const fileObj2 = signatureFileInput.files[0], reader2 = new FileReader();
-
-    // console.log(desktopPath + "/pkcs11-signer/" + randomPath + "/" + fileObj1.name);
-    // console.log(desktopPath + "/pkcs11-signer/" + randomPath + "/" + fileObj2.name);
 
     await mkdir(desktopPath + "/pkcs11-signer/" + randomPath);
 
