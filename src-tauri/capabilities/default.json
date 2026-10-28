@@ -23,6 +23,13 @@
       ]
     },
     {
+      "identifier": "fs:allow-remove",
+      "allow": [
+        "$DESKTOP/*",
+        "$DESKTOP/**/*"
+      ]
+    },
+    {
       "identifier": "fs:allow-read-file",
       "allow": [
         {

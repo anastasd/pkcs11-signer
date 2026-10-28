@@ -1,24 +1,8 @@
 import { mkdir, writeFile, remove, BaseDirectory } from "@tauri-apps/plugin-fs";
 import { Command } from "@tauri-apps/plugin-shell";
-import { desktopDir } from '@tauri-apps/api/path';
+import { desktopDir } from "@tauri-apps/api/path";
 
-const tabButtons = document.querySelectorAll<TabButtonElement>(".tab-btn");
-const tabContents = document.querySelectorAll<HTMLElement>(".tab-content");
-const signFileButton = document.querySelector<HTMLButtonElement>("#sign-button") as HTMLButtonElement | null;
-
-const signFileInput = document.querySelector<HTMLInputElement>("#sign-file");
-const signedFileInput = document.querySelector<HTMLInputElement>("#signed-file");
-const signatureFileInput = document.querySelector<HTMLInputElement>("#signature");
-const veriyFileButton = document.querySelector<HTMLButtonElement>("#verify-button") as HTMLButtonElement | null;
-
-const signModal = document.querySelector<HTMLElement>("#pin-code-modal") as HTMLInputElement | null;
-const okButton = document.querySelector<HTMLButtonElement>("#ok-button");
-const cancelButton = document.querySelector<HTMLButtonElement>("#cancel-button");
-
-const pinCodeInput = document.querySelector<HTMLInputElement>("#pin-code");
-
-const randomPath: string = Math.random().toString(36).substring(2, 10);
-
+type ActionType = "sign" | "verify";
 
 interface TabButtonElement extends HTMLButtonElement {
   dataset: DOMStringMap & {
@@ -26,19 +10,48 @@ interface TabButtonElement extends HTMLButtonElement {
   };
 }
 
+const tabButtons = document.querySelectorAll<TabButtonElement>(".tab-btn");
+const tabContents = document.querySelectorAll<HTMLElement>(".tab-content");
 
-function showModal(action: string): void {
-  okButton!.dataset.action = action; // Assign the correct action so the OK button knows it
+const signFileButton = document.querySelector<HTMLButtonElement>("#sign-button");
+const verifyFileButton = document.querySelector<HTMLButtonElement>("#verify-button");
 
-  if (action == "sign" && signFileInput?.files?.length == 0) {
-    alert("ERROR");
+const signFileInput = document.querySelector<HTMLInputElement>("#sign-file");
+const signedFileInput = document.querySelector<HTMLInputElement>("#signed-file");
+const signatureFileInput = document.querySelector<HTMLInputElement>("#signature");
 
+const signModal = document.querySelector<HTMLElement>("#pin-code-modal");
+const okButton = document.querySelector<HTMLButtonElement>("#ok-button");
+const cancelButton = document.querySelector<HTMLButtonElement>("#cancel-button");
+
+const pinCodeInput = document.querySelector<HTMLInputElement>("#pin-code");
+
+const randomPath = Math.random().toString(36).substring(2, 10);
+
+async function readFileAsUint8Array(file: File): Promise<Uint8Array> {
+  const buffer = await file.arrayBuffer();
+  return new Uint8Array(buffer);
+}
+
+function resetPinModal(): void {
+  if (pinCodeInput) pinCodeInput.value = "";
+  signModal?.classList.remove("active");
+}
+
+function showModal(action: ActionType): void {
+  if (!okButton) return;
+  okButton.dataset.action = action;
+
+  if (action === "sign" && (!signFileInput?.files || signFileInput.files.length === 0)) {
+    alert("Please select a file to sign.");
     return;
   }
 
-  if (action == "verify" && (signedFileInput?.files?.length == 0 || signatureFileInput?.files?.length == 0)) {
-    alert("ERROR");
-
+  if (
+    action === "verify" &&
+    (!signedFileInput?.files?.length || !signatureFileInput?.files?.length)
+  ) {
+    alert("Please select both the signed file and signature file.");
     return;
   }
 
@@ -47,165 +60,141 @@ function showModal(action: string): void {
 
 function hideModal(event: Event): void {
   if (event.target === signModal || event.target === cancelButton) {
-    pinCodeInput!.value = "";
-    signModal?.classList.remove("active");
+    resetPinModal();
   }
 }
 
-function okButtonClicked(event: Event) {
-  const button = event.target as HTMLButtonElement | null;
+function handleOkButtonClick(event: MouseEvent): void {
+  const button = event.currentTarget as HTMLButtonElement | null;
+  const action = button?.dataset.action as ActionType | undefined;
 
-  if (button) {
-    switch (button.dataset.action) {
-      case "sign":
-        signFile();
-        break;
-      case "verify":
-        verifySignature();
-        break;
+  switch (action) {
+    case "sign":
+      void signFile();
+      break;
+    case "verify":
+      void verifySignature();
+      break;
+  }
+}
+
+async function signFile(): Promise<void> {
+  const fileObj = signFileInput?.files?.[0];
+  if (!fileObj) {
+    alert("No file selected.");
+    return;
+  }
+
+  const pinCode = pinCodeInput?.value ?? "";
+  const desktopPath = await desktopDir();
+
+  const folderPath = `${desktopPath}/pkcs11-signer`;
+  const filePath = `${folderPath}/${fileObj.name}`;
+  const sigPath = `${filePath}.sig`;
+
+  try {
+    await mkdir("pkcs11-signer", {
+      baseDir: BaseDirectory.Desktop,
+      recursive: true,
+    });
+
+    const fileSrc = await readFileAsUint8Array(fileObj);
+    await writeFile(filePath, fileSrc);
+
+    const command = Command.create("pkcs11-tool", [
+      "--sign",
+      "--pin", pinCode,
+      "--id", "0001",
+      "--mechanism", "SHA256-RSA-PKCS",
+      "--input-file", filePath,
+      "--output-file", sigPath,
+    ]);
+
+    const output = await command.execute();
+
+    console.log(output);
+
+    if (output.code === 0) {
+      if (signFileInput) signFileInput.value = "";
+      resetPinModal();
+      alert(`Signature successfully generated and saved to ${sigPath}`);
+    } else {
+console.log(output.stderr.match(new RegExp("CKR_[A-Z_]+")));
+
+      // await remove(filePath);
+      alert(`Error creating signature: "${output.stderr}"`);
     }
+  } catch (error) {
+    await remove(filePath).catch(() => {});
+    alert(`Failed to run command: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
-function cancelButtonClicked() {
-  pinCodeInput!.value = "";
-  signModal?.classList.remove("active");
-}
+async function writeVerifyFiles(desktopPath: string, file1: File, file2: File): Promise<{ file1Path: string; file2Path: string; dirPath: string }> {
+  const dirPath = `${desktopPath}/pkcs11-signer/${randomPath}`;
+  const file1Path = `${dirPath}/${file1.name}`;
+  const file2Path = `${dirPath}/${file2.name}`;
 
-async function signFile() {
-  const pinCode = pinCodeInput?.value as String | "";
-  const desktopPath = await desktopDir() as any;
-
-  await mkdir("pkcs11-signer", {
+  await mkdir(`pkcs11-signer/${randomPath}`, {
     baseDir: BaseDirectory.Desktop,
     recursive: true,
   });
 
-  if (signFileInput && signFileInput.files) {
-    const fileObj = signFileInput.files[0], reader = new FileReader();
+  const [src1, src2] = await Promise.all([
+    readFileAsUint8Array(file1),
+    readFileAsUint8Array(file2),
+  ]);
 
-    reader.onload = async function () {
-      if (reader.result instanceof ArrayBuffer) {
-        const fileSrc = new Uint8Array(reader.result);
+  await Promise.all([
+    writeFile(file1Path, src1),
+    writeFile(file2Path, src2),
+  ]);
 
-        await writeFile(desktopPath + "/pkcs11-signer/" + fileObj.name, fileSrc);
-
-        try {
-          const program = "pkcs11-tool";
-          const args = [
-            "--sign",
-            "--pin", pinCode,
-            "--id", "0001",
-            "--mechanism", "SHA256-RSA-PKCS",
-            "--input-file", desktopPath + "/pkcs11-signer/" + fileObj.name,
-            "--output-file", desktopPath + "/pkcs11-signer/" + fileObj.name + ".sig"
-          ] as string[];
-          const command = Command.create(program, args);
-          const output = await command.execute();
-
-          if (output.code === 0) {
-            if (signFileInput) {
-              signFileInput.value = "";
-            }
-            signModal?.classList.remove("active");
-            pinCodeInput!.value = "";
-
-            alert("Signature successfuly generated and saved to " + desktopPath + "/pkcs11-signer/" + fileObj.name + ".sig");
-          } else {
-            await remove(desktopPath + "/pkcs11-signer/" + fileObj.name);
-
-            alert("There was an error creating the signature: \"" + output.stderr + "\"");
-          }
-
-        } catch (error) {
-          await remove(desktopPath + "/pkcs11-signer/" + fileObj.name);
-
-          console.error("Failed to run command:", error);
-        }
-      }
-    };
-
-    var blob = fileObj.slice(0, fileObj.size);
-    reader.readAsArrayBuffer(blob);
-  }
+  return { file1Path, file2Path, dirPath };
 }
 
-async function verifySignature() {
-  // const pinCode = pinCodeInput?.value as String | "";
+async function verifySignature(): Promise<void> {
+  const fileObj1 = signedFileInput?.files?.[0];
+  const fileObj2 = signatureFileInput?.files?.[0];
 
-  const desktopPath = await desktopDir() as any;
-  const fileObj1 = signedFileInput.files[0], reader1 = new FileReader();
-  const fileObj2 = signatureFileInput.files[0], reader2 = new FileReader();
+  if (!fileObj1 || !fileObj2) {
+    alert("Please provide both the source file and signature file.");
+    return;
+  }
 
-  await writeFiles();
+  const desktopPath = await desktopDir();
+  let sessionDir = "";
 
   try {
-    const program = "pkcs11-tool";
-    const args = [
+    const { file1Path, file2Path, dirPath } = await writeVerifyFiles(desktopPath, fileObj1, fileObj2);
+    sessionDir = dirPath;
+
+    const command = Command.create("pkcs11-tool", [
       "--verify",
       "--id", "0001",
       "--mechanism", "SHA256-RSA-PKCS",
-      "--input-file", desktopPath + "/pkcs11-signer/" + randomPath + "/" + fileObj1.name,
-      "--signature-file", desktopPath + "/pkcs11-signer/" + randomPath + "/" + fileObj1.name + ".sig"
-    ] as string[];
-    const command = Command.create(program, args);
+      "--input-file", file1Path,
+      "--signature-file", file2Path,
+    ]);
+
     const output = await command.execute();
 
     if (output.code === 0) {
-      if (signFileInput) {
-        signFileInput.value = "";
-      }
-      signModal?.classList.remove("active");
-      pinCodeInput!.value = "";
-
-      alert("Signature successfuly generated and saved to " + desktopPath + "/" + fileObj.name + ".sig");
+      alert("Signature is valid");
     } else {
-      await remove(desktopPath + "/" + fileObj1.name);
-
-      alert("There was an error creating the signature: \"" + output.stderr + "\"");
+      alert(`Signature verification failed: "${output.stderr}"`);
     }
-
   } catch (error) {
-    await remove(desktopPath + "/" + fileObj1.name);
-
-    console.error("Failed to run command:", error);
-  }
-}
-
-async function writeFiles() {
-  if (signedFileInput && signedFileInput.files && signatureFileInput && signatureFileInput.files) {
-    const desktopPath = await desktopDir() as any;
-    const fileObj1 = signedFileInput.files[0], reader1 = new FileReader();
-    const fileObj2 = signatureFileInput.files[0], reader2 = new FileReader();
-
-    await mkdir(desktopPath + "/pkcs11-signer/" + randomPath);
-
-    reader1.onload = async function () {
-      if (reader1.result instanceof ArrayBuffer) {
-        const fileSrc = new Uint8Array(reader1.result);
-
-        await writeFile(desktopPath + "/pkcs11-signer/" + randomPath + "/" + fileObj1.name, fileSrc);
-      }
-    };
-
-    reader2.onload = async function () {
-      if (reader2.result instanceof ArrayBuffer) {
-        const fileSrc = new Uint8Array(reader2.result);
-
-        await writeFile(desktopPath + "/pkcs11-signer/" + randomPath + "/" + fileObj2.name, fileSrc);
-      }
-    };
-
-    var blob1 = fileObj1.slice(0, fileObj1.size);
-    reader1.readAsArrayBuffer(blob1);
-
-    var blob2 = fileObj2.slice(0, fileObj2.size);
-    reader2.readAsArrayBuffer(blob2);
+    alert(`Failed to run command: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    if (sessionDir) {
+      await remove(sessionDir, { recursive: true }).catch(() => {});
+    }
   }
 }
 
 function initTabs(): void {
-  if (!tabButtons?.length || !tabContents.length) return;
+  if (!tabButtons.length || !tabContents.length) return;
 
   tabButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -225,20 +214,14 @@ function initTabs(): void {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  signFileButton?.addEventListener("click", () => {
-    showModal("sign");
-  });
-
-  veriyFileButton?.addEventListener("click", () => {
-    showModal("verify");
-  });
+  signFileButton?.addEventListener("click", () => showModal("sign"));
+  verifyFileButton?.addEventListener("click", verifySignature);
 
   cancelButton?.addEventListener("click", hideModal);
-
   signModal?.addEventListener("click", hideModal);
 
-  okButton?.addEventListener("click", okButtonClicked);
-  cancelButton?.addEventListener("click", cancelButtonClicked);
+  okButton?.addEventListener("click", handleOkButtonClick);
+  cancelButton?.addEventListener("click", resetPinModal);
 
   initTabs();
 });
