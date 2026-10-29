@@ -5,46 +5,44 @@
   <meta charset="UTF-8" />
   <link rel="stylesheet" href="/src/styles.css" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PKCS11 Signature Generator</title>
+  <title>PKCS#11 Signature Tool</title>
   <script type="module" src="/src/main.ts" defer></script>
 </head>
 
 <body>
   <main class="min-h-screen flex items-center justify-center p-4">
-    <div
-      class="tabs-container w-full max-w-7xl shadow-md border pl-6 pr-6 flex flex-col justify-center">
+    <div class="tabs-container w-full max-w-7xl shadow-md border pl-6 pr-6 flex flex-col justify-center">
       <div class="tab-buttons">
-        <button class="tab-btn active" data-tab="tab-1">Sign a file</button>
+        <button class="tab-btn active" data-tab="tab-1">Sign File</button>
         <button class="tab-btn" data-tab="tab-2">Verify Signature</button>
       </div>
 
       <div id="tab-1" class="tab-content active">
-        <h4 class="text-lg font-bold">Sign a file</h4>
-        <p class="py-3">Select a file you would like to create signature of.</p>
+        <h4 class="text-lg font-bold">Sign File</h4>
+        <p class="py-3 text-gray-600">Select a document to generate a digital signature using your hardware token.</p>
 
-        <div class="buttons-row flex justify-between">
+        <div class="buttons-row flex justify-between items-center">
           <input type="file" id="sign-file" />
-          <button type="button" id="sign-button">Sign</button>
+          <button type="button" id="sign-button">Sign File</button>
         </div>
       </div>
 
       <div id="tab-2" class="tab-content">
         <h4 class="text-lg font-bold">Verify Signature</h4>
-        <p class="py-3">Select a file in the first input and its signature in the second one to verify it.
-        </p>
+        <p class="py-3 text-gray-600">Select the original file and its detached signature file (.sig) to verify
+          integrity.</p>
 
-        <div class="buttons-row flex justify-between">
+        <div class="buttons-row flex justify-between items-end">
           <div>
-            <p class="italic py-3">Original file</p>
+            <label for="signed-file" class="block font-medium py-2">Original File</label>
             <input type="file" id="signed-file" />
           </div>
           <div>
-            <p class="italic py-3">Signature</p>
+            <label for="signature" class="block font-medium py-2">Detached Signature (.sig)</label>
             <input type="file" id="signature" accept=".sig" />
           </div>
           <div>
-            <p class="italic py-3">&nbsp;</p>
-            <button type="button" id="verify-button">Verify</button>
+            <button type="button" id="verify-button">Verify Signature</button>
           </div>
         </div>
       </div>
@@ -53,10 +51,11 @@
 
   <section class="overlay" id="pin-code-modal">
     <div class="modal-window">
-      <p class="mb-3">Please enter your PIN code</p>
-      <input type="password" class="mb-3" id="pin-code" />
-      <div>
-        <button type="button" id="ok-button">OK</button>
+      <h3 class="text-md font-bold mb-1">Hardware Token Required</h3>
+      <p class="mb-3 text-sm text-gray-600">Please enter your smart card or token PIN code.</p>
+      <input type="password" class="mb-3" id="pin-code" autocomplete="off" />
+      <div class="flex justify-between">
+        <button type="button" id="ok-button">Authenticate</button>
         <button type="button" id="cancel-button">Cancel</button>
       </div>
     </div>

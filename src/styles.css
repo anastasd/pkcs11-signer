@@ -142,12 +142,13 @@ section.overlay>.modal-window {
 section.overlay input[type='password'] {
   display: block;
   margin: auto;
-  width: 100px;
+  width: 160px;
   padding: 5px 10px;
   border-radius: 0;
   border: 1px solid #ccc;
   letter-spacing: 0.85em;
   background-color: #fff;
+  text-align: center;
 }
 
 section.overlay button {

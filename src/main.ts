@@ -65,6 +65,10 @@ function hideModal(event: Event): void {
 }
 
 function handleOkButtonClick(event: MouseEvent): void {
+  if (okButton) {
+    okButton.textContent = "Please wait";
+  }
+
   const button = event.currentTarget as HTMLButtonElement | null;
   const action = button?.dataset.action as ActionType | undefined;
 
@@ -163,6 +167,10 @@ async function signFile(): Promise<void> {
     await remove(filePath).catch(() => { });
     alert(`Failed to run command: ${error instanceof Error ? error.message : String(error)}`);
   }
+
+  if (okButton) {
+    okButton.textContent = "Authenticate";
+  }
 }
 
 async function writeVerifyFiles(desktopPath: string, file1: File, file2: File): Promise<{ file1Path: string; file2Path: string; dirPath: string }> {
@@ -226,6 +234,10 @@ async function verifySignature(): Promise<void> {
     if (sessionDir) {
       await remove(sessionDir, { recursive: true }).catch(() => { });
     }
+  }
+
+  if (okButton) {
+    okButton.textContent = "Authenticate";
   }
 }
 

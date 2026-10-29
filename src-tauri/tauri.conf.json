@@ -14,8 +14,8 @@
     "windows": [
       {
         "title": "PKCS11 Signature Generator",
-        "width": 928,
-        "height": 522,
+        "width": 960,
+        "height": 360,
         "theme": "Dark"
       }
     ],
