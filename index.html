@@ -10,40 +10,40 @@
 </head>
 
 <body>
-  <main class="container">
-
-    <div class="tabs-container w-100">
+  <main class="min-h-screen flex items-center justify-center p-4">
+    <div
+      class="tabs-container w-full max-w-7xl shadow-md border pl-6 pr-6 flex flex-col justify-center">
       <div class="tab-buttons">
         <button class="tab-btn active" data-tab="tab-1">Sign a file</button>
         <button class="tab-btn" data-tab="tab-2">Verify Signature</button>
       </div>
 
       <div id="tab-1" class="tab-content active">
-        <h4>Sign a file</h4>
-        <p>Select a file you would like to create signature of.</p>
+        <h4 class="text-lg font-bold">Sign a file</h4>
+        <p class="py-3">Select a file you would like to create signature of.</p>
 
-        <div class="buttons-row">
+        <div class="buttons-row flex justify-between">
           <input type="file" id="sign-file" />
           <button type="button" id="sign-button">Sign</button>
         </div>
       </div>
 
       <div id="tab-2" class="tab-content">
-        <h4>Verify Signature</h4>
-        <p>Select a file in the first input and its signature in the second one to verify it.
+        <h4 class="text-lg font-bold">Verify Signature</h4>
+        <p class="py-3">Select a file in the first input and its signature in the second one to verify it.
         </p>
 
-        <div class="buttons-row">
+        <div class="buttons-row flex justify-between">
           <div>
-            <p>Original file</p>
+            <p class="italic py-3">Original file</p>
             <input type="file" id="signed-file" />
           </div>
           <div>
-            <p>Signature</p>
+            <p class="italic py-3">Signature</p>
             <input type="file" id="signature" accept=".sig" />
           </div>
           <div>
-            <p>&nbsp;</p>
+            <p class="italic py-3">&nbsp;</p>
             <button type="button" id="verify-button">Verify</button>
           </div>
         </div>
@@ -53,8 +53,8 @@
 
   <section class="overlay" id="pin-code-modal">
     <div class="modal-window">
-      <p>Please enter your PIN code</p>
-      <input type="password" id="pin-code" />
+      <p class="mb-3">Please enter your PIN code</p>
+      <input type="password" class="mb-3" id="pin-code" />
       <div>
         <button type="button" id="ok-button">OK</button>
         <button type="button" id="cancel-button">Cancel</button>

@@ -112,20 +112,55 @@ async function signFile(): Promise<void> {
 
     const output = await command.execute();
 
-    console.log(output);
-
     if (output.code === 0) {
       if (signFileInput) signFileInput.value = "";
       resetPinModal();
       alert(`Signature successfully generated and saved to ${sigPath}`);
     } else {
-console.log(output.stderr.match(new RegExp("CKR_[A-Z_]+")));
+      const errorCode = output.stderr.match(new RegExp("CKR_[A-Z_]+")) as RegExpMatchArray | null;
 
-      // await remove(filePath);
-      alert(`Error creating signature: "${output.stderr}"`);
+      if (errorCode) {
+        switch (errorCode[0]) {
+          case "CKR_HOST_MEMORY":
+            alert("Your computer has insufficient memory to perform the requested function.");
+            break;
+          case "CKR_SLOT_ID_INVALID":
+            alert("The specified slot ID is not valid.");
+            break;
+          case "CKR_GENERAL_ERROR":
+            alert("Unknown error happened: " + output.stderr);
+            break;
+          case "CKR_ARGUMENTS_BAD":
+            alert("The provided arguments were not appropriate");
+            break;
+          case "CKR_ATTRIBUTE_TYPE_INVALID":
+            alert("An invalid value was specified for an attribute.");
+            break;
+          case "CKR_DATA_INVALID":
+            alert("The plaintext input data is invalid.");
+            break;
+          case "CKR_DEVICE_ERROR":
+            alert("Some problem has occurred with the token and/or slot. ");
+            break;
+          case "CKR_DEVICE_MEMORY":
+            alert("The device does not have sufficient memory to create the signature.");
+            break;
+          case "CKR_KEY_HANDLE_INVALID":
+            alert("The specified key handle is not valid.");
+            break;
+          case "CKR_PIN_INCORRECT":
+            alert("The PIN code is incorrect!");
+            break;
+          default:
+            alert(`Error creating signature: "${output.stderr}"`);
+        }
+      } else {
+        // await remove(filePath);
+        alert(`Error creating signature: "${output.stderr}"`);
+      }
     }
   } catch (error) {
-    await remove(filePath).catch(() => {});
+    await remove(filePath).catch(() => { });
     alert(`Failed to run command: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
@@ -182,13 +217,14 @@ async function verifySignature(): Promise<void> {
     if (output.code === 0) {
       alert("Signature is valid");
     } else {
-      alert(`Signature verification failed: "${output.stderr}"`);
+      // alert(`Signature verification failed: "${output.stderr}"`);
+      alert("Signature verification failed");
     }
   } catch (error) {
     alert(`Failed to run command: ${error instanceof Error ? error.message : String(error)}`);
   } finally {
     if (sessionDir) {
-      await remove(sessionDir, { recursive: true }).catch(() => {});
+      await remove(sessionDir, { recursive: true }).catch(() => { });
     }
   }
 }
