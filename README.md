@@ -55,7 +55,7 @@ sudo systemctl enable --now pcscd
 
 ### Installation / Pre-built Binaries
 
-Download the latest release for your platform from the [Releases](https://www.google.com/search?q=https://github.com/anastasd/pkcs11-signer/releases) tab.
+Download the latest release for your platform from the [Releases](https://github.com/anastasd/pkcs11-signer/releases) tab.
 
 ---
 
@@ -141,7 +141,7 @@ The compiled binaries will be located in `src-tauri/target/release/bundle/`.
 
 Contributions, issues, and feature requests are welcome!
 
-Feel free to check the [issues page](https://www.google.com/search?q=https://github.com/anastasd/pkcs11-signer/issues).
+Feel free to check the [issues page](https://github.com/anastasd/pkcs11-signer/issues).
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
