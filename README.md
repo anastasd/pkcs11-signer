@@ -1,6 +1,3 @@
-Here is a comprehensive, production-ready `README.md` for your **pkcs11-signer** repository.
-
-```markdown
 # PKCS#11 Document & File Signer
 
 An open-source cross-platform desktop application built with **Tauri**, **Rust**, **TypeScript**, and **Tailwind CSS**. It enables fast, hardware-secured digital signatures on any arbitrary file using PKCS#11 smart cards and USB crypto tokens (HSMs).
